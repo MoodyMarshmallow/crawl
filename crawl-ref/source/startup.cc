@@ -838,6 +838,8 @@ void UIStartupMenu::on_show()
 
         if (key_is_escape(keyn) || keyn == CK_MOUSE_CMD)
         {
+            if (harness_no_exit())
+                return true;
             // End the game
             return done = end_game = true;
         }

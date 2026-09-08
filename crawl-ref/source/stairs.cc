@@ -30,6 +30,7 @@
 #include "item-name.h"
 #include "items.h"
 #include "level-state-type.h"
+#include "libutil.h"
 #include "losglobal.h"
 #include "mapmark.h"
 #include "message.h"
@@ -359,6 +360,13 @@ static void _update_travel_cache(const level_id& old_level,
 // These checks are probably unnecessary.
 static bool _check_stairs(const dungeon_feature_type ftype, bool going_up)
 {
+    if (harness_no_exit() && ftype == DNGN_EXIT_DUNGEON && going_up
+        && !player_has_orb())
+    {
+        mpr("Session exit is disabled by the harness.");
+        return false;
+    }
+
     // If it's not bidirectional, check that the player is headed
     // in the right direction.
     if (!feat_is_bidirectional_portal(ftype))

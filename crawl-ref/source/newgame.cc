@@ -386,6 +386,9 @@ static bool _reroll_random(newgame_def& ng)
     int c;
     popup->on_keydown_event([&](const KeyEvent& ev) {
         c = ev.key();
+        if (harness_no_exit()
+            && (key_is_escape(c) || c == CK_MOUSE_CMD || toalower(c) == 'q'))
+            return true;
         return done = true;
     });
 
@@ -673,6 +676,8 @@ static void _choose_name(newgame_def& ng, newgame_def& choice)
                 ok_switcher->current() = good_name ? 0 : 1;
                 break;
             case CK_ESCAPE: // redundant with key_exits_popup check below
+                if (harness_no_exit())
+                    break;
                 done = cancel = true;
                 break;
         }
@@ -681,6 +686,8 @@ static void _choose_name(newgame_def& ng, newgame_def& choice)
 
     popup->on_keydown_event([&](const KeyEvent& ev) {
         auto key = ev.key();
+        if (harness_no_exit() && ui::key_exits_popup(key, false))
+            return true;
         if (ui::key_exits_popup(key, false))
             return done = cancel = true;
 
@@ -959,6 +966,8 @@ static void _choose_seed(newgame_def& ng, newgame_def& choice,
     // TODO: ESC gets absorbed by active buttons, does this make sense?
     popup->on_keydown_event([&](const KeyEvent& ev) {
         const auto key = ev.key();
+        if (harness_no_exit() && ui::key_exits_popup(key, false))
+            return true;
         if (key == '?') // TODO: text box absorbs this still
             show_help('D', "Seeded play"); // TODO: scroll to section
 #ifdef USE_TILE_LOCAL
@@ -1236,6 +1245,10 @@ public:
 
         m_vbox->on_hotkey_event([this](const KeyEvent& event) {
             const int lastch = event.key();
+            if (harness_no_exit()
+                && (ui::key_exits_popup(lastch, false)
+                    || lastch == 'X' || lastch == CONTROL('Q')))
+                return true;
             if (ui::key_exits_popup(lastch, false))
                 return done = cancel = true;
             switch (lastch)
@@ -1872,6 +1885,8 @@ static bool _prompt_weapon(const newgame_def& ng, newgame_def& ng_choice,
         switch (id)
         {
             case M_ABORT:
+                if (harness_no_exit())
+                    return true;
                 ret = false;
                 return done = true;
             case M_APTITUDES:
@@ -1905,6 +1920,10 @@ static bool _prompt_weapon(const newgame_def& ng, newgame_def& ng_choice,
     auto popup = make_shared<ui::Popup>(vbox);
     popup->on_hotkey_event([&](const KeyEvent& ev) {
         const int lastch = ev.key();
+        if (harness_no_exit()
+            && (ui::key_exits_popup(lastch, false) || lastch == ' '
+                || lastch == 'X' || lastch == CONTROL('Q')))
+            return true;
         if (ui::key_exits_popup(lastch, false)
             || lastch == ' ')
         {
@@ -2275,6 +2294,10 @@ static void _prompt_gamemode_map(newgame_def& ng, newgame_def& ng_choice,
     auto popup = make_shared<ui::Popup>(vbox);
     popup->on_hotkey_event([&](const KeyEvent& ev) {
         const int lastch = ev.key();
+        if (harness_no_exit()
+            && (key_exits_popup(lastch, false)
+                || lastch == 'X' || lastch == CONTROL('Q')))
+            return true;
         if (key_exits_popup(lastch, false))
             return done = cancel = true;
         switch (lastch)

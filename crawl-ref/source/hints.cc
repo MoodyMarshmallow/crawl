@@ -226,6 +226,8 @@ void pick_hints(newgame_def& choice)
     vbox->on_activate_event([&](const ActivateEvent& event) {
         const auto button = static_pointer_cast<MenuButton>(event.target());
         int id = button->id;
+        if (id == CK_ESCAPE && harness_no_exit())
+            return true;
         if (id == CK_ESCAPE)
             return done = cancelled = true;
         else if (id == '*')
@@ -258,6 +260,8 @@ void pick_hints(newgame_def& choice)
     auto popup = make_shared<ui::Popup>(vbox);
 
     popup->on_keydown_event([&](const KeyEvent& ev) {
+        if (harness_no_exit() && ui::key_exits_popup(ev.key(), false))
+            return true;
         if (ui::key_exits_popup(ev.key(), false))
             return done = cancelled = true;
         return false;

@@ -829,7 +829,7 @@ static void _headless_startup()
     // TODO: windows ctrl-c? should be able to add a handler on top of
     // libutil.cc:console_handler
 #if defined(USE_UNIX_SIGNALS) && defined(SIGINT)
-    signal(SIGINT, handle_hangup);
+    signal(SIGINT, harness_no_exit() ? SIG_IGN : handle_hangup);
 #endif
 
 #ifdef USE_TILE_WEB

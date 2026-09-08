@@ -2120,6 +2120,14 @@ void process_command(command_type cmd, command_type prev_cmd)
         cmd = m.cmd;
     }
 
+    if (harness_no_exit()
+        && (cmd == CMD_SAVE_GAME || cmd == CMD_SAVE_GAME_NOW
+            || cmd == CMD_QUIT || cmd == CMD_SUSPEND_GAME))
+    {
+        mpr("Session exit is disabled by the harness.");
+        return;
+    }
+
     switch (cmd)
     {
 #ifdef USE_TILE

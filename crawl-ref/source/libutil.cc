@@ -22,6 +22,12 @@
 #include "unicode.h"
 #include "viewgeom.h"
 
+bool harness_no_exit()
+{
+    const char *value = getenv("DCSS_HARNESS_NO_EXIT");
+    return value && strcmp(value, "1") == 0;
+}
+
 #ifdef TARGET_OS_WINDOWS
     #undef ARRAYSZ
     #include <windows.h>
@@ -704,7 +710,7 @@ void init_signals()
     // for local tiles, headless mode is checked in the signal handler, so
     // we want to unconditionally add the handler here to get ctrl-c. For
     // console this is handled somewhat differently; see _headless_startup().
-    signal(SIGINT, handle_hangup);
+    signal(SIGINT, harness_no_exit() ? SIG_IGN : handle_hangup);
 #else
     signal(SIGINT, SIG_IGN);
 #endif

@@ -5,6 +5,10 @@
 
 #pragma once
 
+// Opt-in harness policy for user-requested session exits. External process
+// termination and ordinary game endings remain unaffected.
+bool harness_no_exit();
+
 #include <cctype>
 #include <map>
 #include <memory>
