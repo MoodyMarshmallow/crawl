@@ -26,6 +26,7 @@
 #include "english.h"
 #include "env.h"
 #include "files.h"
+#include "hiscores.h"
 #include "invent.h"
 #include "item-name.h"
 #include "item-prop.h" // is_weapon()
@@ -711,6 +712,23 @@ wint_t TilesFramework::await_input(bool(*has_console_input)())
         FD_SET(STDIN_FILENO, &fds);
         FD_SET(m_sock, &fds);
 
+        if (!harness_boundary_sent && getenv("DCSS_HARNESS_SCORE"))
+        {
+            json_open_object();
+            json_write_string("msg", "harness_score");
+            if (crawl_state.need_save)
+                json_write_int("score", current_game_score());
+            else
+                json_write_null("score");
+            json_write_int("game_turn", you.num_turns);
+            if (crawl_state.need_save)
+                json_write_int("game_time", you.elapsed_time);
+            else
+                json_write_null("game_time");
+            json_write_bool("final", false);
+            json_close_object();
+            finish_message();
+        }
         tiles.flush_messages();
 
         if (has_console_input())

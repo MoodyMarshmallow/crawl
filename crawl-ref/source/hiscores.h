@@ -17,6 +17,9 @@ using std::vector;
 
 class scorefile_entry;
 
+// Official score for the current state; victory bonuses apply only when won.
+int current_game_score(bool won = false);
+
 int hiscores_new_entry(const scorefile_entry &se);
 
 void logfile_new_entry(const scorefile_entry &se);

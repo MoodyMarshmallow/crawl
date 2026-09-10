@@ -38,6 +38,7 @@
 #ifdef USE_TILE_WEB
 # include "json.h"
 # include "json-wrapper.h"
+# include "tileweb.h"
 #endif
 #include "kills.h"
 #include "libutil.h"
@@ -194,6 +195,20 @@ int hiscores_new_entry(const scorefile_entry &ne)
 
 void logfile_new_entry(const scorefile_entry &ne)
 {
+#ifdef USE_TILE_WEB
+    if (getenv("DCSS_HARNESS_SCORE"))
+    {
+        tiles.json_open_object();
+        tiles.json_write_string("msg", "harness_score");
+        tiles.json_write_int("score", ne.get_score());
+        tiles.json_write_int("game_turn", you.num_turns);
+        tiles.json_write_int("game_time", you.elapsed_time);
+        tiles.json_write_bool("final", true);
+        tiles.json_close_object();
+        tiles.finish_message();
+        tiles.flush_messages();
+    }
+#endif
     unwind_bool logfile_update(crawl_state.updating_scores, true);
 
     FILE *logfile;
@@ -1616,6 +1631,49 @@ static int _award_modified_experience()
     return result;
 }
 
+int current_game_score(bool won)
+{
+    // do points first.
+    int points = 0;
+    bool base_score = true;
+
+    dlua.callfn("dgn.persist.calc_score", "b>db",
+                won, &points, &base_score);
+
+    const int num_runes = runes_in_pack();
+    const int gems_found = ::gems_found();
+
+    // If calc_score didn't exist, or returned true as its second value,
+    // use the default formula.
+    if (base_score)
+    {
+        // sprint games could overflow a 32 bit value
+        uint64_t pt = points + _award_modified_experience();
+
+        // There's no point in rewarding lugging artefacts. Thus, no points
+        // for the value of the inventory. -- 1KB
+        if (won)
+        {
+            pt += 250000; // the Orb
+            pt += num_runes * 2000 + 4000;
+            pt += ((uint64_t)250000) * 25000 * num_runes * num_runes
+                / (1+you.num_turns);
+        }
+        // Add a little score for gems so that newer players who find one
+        // feel rewarded, but not so much that it impacts high score play.
+        pt += gems_found * 10000 * ((won) ? 10 : 1);
+        pt += num_runes * 10000;
+        pt += num_runes * (num_runes + 2) * 1000;
+
+        points = pt;
+    }
+    else
+        ASSERT(crawl_state.game_is_sprint());
+        // only sprint should use custom scores
+
+    return points;
+}
+
 void scorefile_entry::init(time_t dt)
 {
     // Score file entry version:
@@ -1669,45 +1727,10 @@ void scorefile_entry::init(time_t dt)
      *    + 250000 * 25000 * runes^2 / turns   (winners only)
      */
 
-    // do points first.
-    points = 0;
-    bool base_score = true;
-
-    dlua.callfn("dgn.persist.calc_score", "b>db",
-                death_type == KILLED_BY_WINNING, &points, &base_score);
-
-    num_runes      = runes_in_pack();
-    num_diff_runes = num_runes;
-    gems_found     = ::gems_found();
-    gems_intact    = gems_found - gems_lost();
-
-    // If calc_score didn't exist, or returned true as its second value,
-    // use the default formula.
-    if (base_score)
-    {
-        // sprint games could overflow a 32 bit value
-        uint64_t pt = points + _award_modified_experience();
-
-        // There's no point in rewarding lugging artefacts. Thus, no points
-        // for the value of the inventory. -- 1KB
-        if (death_type == KILLED_BY_WINNING)
-        {
-            pt += 250000; // the Orb
-            pt += num_runes * 2000 + 4000;
-            pt += ((uint64_t)250000) * 25000 * num_runes * num_runes
-                / (1+you.num_turns);
-        }
-        // Add a little score for gems so that newer players who find one
-        // feel rewarded, but not so much that it impacts high score play.
-        pt += gems_found * 10000 * ((death_type == KILLED_BY_WINNING) ? 10 : 1);
-        pt += num_runes * 10000;
-        pt += num_runes * (num_runes + 2) * 1000;
-
-        points = pt;
-    }
-    else
-        ASSERT(crawl_state.game_is_sprint());
-        // only sprint should use custom scores
+    points = current_game_score(death_type == KILLED_BY_WINNING);
+    num_runes = num_diff_runes = runes_in_pack();
+    gems_found = ::gems_found();
+    gems_intact = gems_found - gems_lost();
 
     race = you.species;
     job  = you.char_class;
